@@ -6,6 +6,8 @@ import SwiftUI
 ///   HermesBackup --test-unlock <dmg> <password> <outdir>  unlock a backup and copy its contents out
 ///   HermesBackup --test-render-menu <png>                 draw the menu bar panel to an image
 ///   HermesBackup --test-render-window <png> [restore|twice]  draw the main window's content to an image
+///   HermesBackup --test-update-check                      show the newest release on GitHub
+///   HermesBackup --test-update <app>                      download, verify and swap the newest release into <app>
 enum SelfTest {
     static func runIfAsked() {
         let a = CommandLine.arguments
@@ -65,6 +67,17 @@ enum SelfTest {
                     try? rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: a[2]))
                 }
                 print("rendered", a[2])
+            case "--test-update-check":
+                let r = try waitFor { try await Updater.fetchLatest() }
+                print("this copy:", Updater.currentVersion)
+                print("latest:", r.map { "\($0.version) \($0.dmg)" } ?? "no release")
+                print("newer:", r.map { Updater.isNewer($0.version, than: Updater.currentVersion) } ?? false)
+            case "--test-update" where a.count == 3:
+                guard let r = try waitFor({ try await Updater.fetchLatest() }) else { print("no release"); exit(1) }
+                let staged = try waitFor { try await Updater.download(r) }
+                print("verified", r.version)
+                try Updater.replace(URL(fileURLWithPath: a[2]), with: staged, relaunch: false)
+                print("installed into", a[2])
             default:
                 print("unknown test")
                 exit(2)
@@ -74,5 +87,17 @@ enum SelfTest {
             print("FAILED:", error.localizedDescription)
             exit(1)
         }
+    }
+
+    /// Runs async work to completion from the synchronous self-test.
+    private static func waitFor<T>(_ work: @escaping @Sendable () async throws -> T) throws -> T {
+        nonisolated(unsafe) var result: Result<T, Error>!
+        let done = DispatchSemaphore(value: 0)
+        Task.detached {
+            do { result = .success(try await work()) } catch { result = .failure(error) }
+            done.signal()
+        }
+        done.wait()
+        return try result.get()
     }
 }

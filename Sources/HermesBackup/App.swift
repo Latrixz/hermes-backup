@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             AppModel.shared.start()
+            Updater.shared.start()
             if !AppModel.shared.hasPassword { MainWindow.show(.backup) }
         }
     }
@@ -46,6 +47,7 @@ extension AppModel {
 /// The menu bar panel: a quiet status header, one clear primary action, the rest out of the way.
 struct MenuPanel: View {
     @EnvironmentObject private var model: AppModel
+    @ObservedObject private var updater = Updater.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -64,10 +66,29 @@ struct MenuPanel: View {
             }
             .padding(6)
             Divider().padding(.horizontal, 12)
-            MenuRow("Quit Hermes Backup", symbol: "power", quiet: true) { NSApp.terminate(nil) }
-                .padding(6)
+            VStack(spacing: 2) {
+                if let r = updater.available {
+                    MenuRow(updateTitle(r), symbol: "arrow.down.circle", prominent: true,
+                            disabled: updater.phase != .idle) { updater.offer() }
+                } else {
+                    MenuRow(updater.phase == .checking ? "Checking for Updates…" : "Check for Updates…",
+                            symbol: "arrow.down.circle", disabled: updater.phase != .idle) {
+                        Task { await updater.check(manual: true) }
+                    }
+                }
+                MenuRow("Quit Hermes Backup", symbol: "power", quiet: true) { NSApp.terminate(nil) }
+            }
+            .padding(6)
         }
         .frame(width: 290)
+    }
+
+    private func updateTitle(_ r: Updater.Release) -> String {
+        switch updater.phase {
+        case .downloading: return "Downloading \(r.version)…"
+        case .installing: return "Installing \(r.version)…"
+        default: return "Update to \(r.version)…"
+        }
     }
 }
 

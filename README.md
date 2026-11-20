@@ -25,13 +25,17 @@ Hermes keeps everything that makes it *yours* (memories, skills, chat sessions, 
 
 ## Install
 
-1. Download **Hermes Backup.dmg** from [Releases](https://github.com/Latrixz/hermes-backup/releases/latest). It's signed and notarized by Apple, so it opens without warnings.
+1. Download the `.dmg` from the [latest release](https://github.com/Latrixz/hermes-backup/releases/latest). It's signed and notarized by Apple, so it opens without warnings.
 2. Drag **Hermes Backup** to Applications and open it. It lives in the menu bar.
 3. Choose a backup password, add any extra destinations, and you're done.
 
 **Needs:** macOS 14 or later, and [Hermes Agent](https://github.com/NousResearch/hermes-agent) installed (the `hermes` command).
 
 > **Keep your password safe.** Without it, a backup can't be opened, by design.
+
+### Updates
+
+Hermes Backup checks this repo's releases once a day. When there's a new version, the menu shows **Update to x.y.z…**; click it to see what's new, then **Install and Relaunch**. You can also choose **Check for Updates…** at any time. Before installing, it checks the download is signed by the same developer and is the version it claims to be. Your settings, password and backups aren't touched.
 
 ## How it works
 
@@ -45,7 +49,12 @@ Hermes keeps everything that makes it *yours* (memories, skills, chat sessions, 
     ./build.sh --dmg                  # universal build + DMG, ad-hoc signed
     SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=<profile> ./build.sh --dmg   # signed + notarized
 
-Run tests with `swift test`. Icon: `swift scripts/make-icon.swift && iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns`
+Run tests with `swift test`.
+
+To publish a release (tests, version bump, signed and notarized DMG, tag, GitHub release):
+
+    scripts/release.sh 0.2.0 "What changed"
+ Icon: `swift scripts/make-icon.swift && iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns`
 
 ### Testing without touching your live Hermes
 
@@ -55,4 +64,6 @@ Run tests with `swift test`. Icon: `swift scripts/make-icon.swift && iconutil -c
 
 Settings live in `~/Library/Application Support/HermesBackup/settings.json`.
 
-Hermes Backup is an independent tool and isn't made by Nous Research.
+## License
+
+[MIT](LICENSE). Hermes Backup is an independent tool and isn't made by Nous Research.
